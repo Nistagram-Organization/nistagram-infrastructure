@@ -1,0 +1,215 @@
+version: '3.7'
+
+services:
+  posts-database:
+    container_name: posts-database
+    image: mysql:8.0.19
+    restart: always
+    ports:
+      - 3306
+    command: '--default-authentication-plugin=mysql_native_password'
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 3s
+      retries: 5
+      start_period: 30s
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=nistagrampostsschema
+    volumes:
+      - posts-db:/var/lib/mysql
+    networks:
+      - backend
+
+  media-database:
+    container_name: media-database
+    image: mysql:8.0.19
+    restart: always
+    ports:
+      - 3306
+    command: '--default-authentication-plugin=mysql_native_password'
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 3s
+      retries: 5
+      start_period: 30s
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=nistagrammediaschema
+    volumes:
+      - media-db:/var/lib/mysql
+    networks:
+      - backend
+
+  users-database:
+    container_name: users-database
+    image: mysql:8.0.19
+    restart: always
+    ports:
+      - 3306
+    command: '--default-authentication-plugin=mysql_native_password'
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 3s
+      retries: 5
+      start_period: 30s
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=nistagramusersschema
+    volumes:
+      - users-db:/var/lib/mysql
+    networks:
+      - backend
+
+  # nginx:
+  #     image: nginx:latest
+  #     container_name: nginx
+  #     volumes:
+  #       - ./nistagram-gateway/nistagram-gateway.conf:/etc/nginx/nginx.conf:ro
+  #     ports:
+  #       - 9090:9090
+  #     depends_on:
+  #       - nistagram-auth
+  #       - nistagram-posts
+  #       - nistagram-users
+  #       - nistagram-media
+  #       - nistagram-administration
+
+  nistagram-auth:
+    container_name: nistagram-auth
+    build:
+      context: https://github.com/Nistagram-Organization/nistagram-auth.git#development
+      dockerfile: Dockerfile
+    ports:
+      - 9091
+    restart: on-failure
+    environment:
+      - domain=https://dev-6w-2hyw1.eu.auth0.com/
+      - client_id=MFeqMxuVXt8yZ77JwcuzeQp1TUOzP7s6
+      - client_secret=4ogQ5EDWfmziVpiYbVmFIORjuG93GJc7ldRoBQRd2iLQUfHtRefB7zeGCNCLXt2_
+      - audience=https://dev-6w-2hyw1.eu.auth0.com/api/v2/
+      - docker=true
+    networks:
+      - backend
+
+  nistagram-posts:
+    container_name: nistagram-posts
+    build:
+      context: https://github.com/Nistagram-Organization/nistagram-posts.git#development
+      dockerfile: Dockerfile
+    ports:
+      - 8085
+    depends_on:
+      posts-database:
+        condition: service_healthy
+    restart: on-failure
+    environment:
+      - mysql_username=root
+      - mysql_password=root
+      - mysql_host=posts-database:3306
+      - mysql_schema=nistagrampostsschema
+      - docker=true
+    networks:
+      - backend
+
+  nistagram-users:
+    container_name: nistagram-users
+    build:
+      context: https://github.com/Nistagram-Organization/nistagram-users.git#development
+      dockerfile: Dockerfile
+    ports:
+      - 8084
+    depends_on:
+      users-database:
+        condition: service_healthy
+    restart: on-failure
+    environment:
+      - mysql_username=root
+      - mysql_password=root
+      - mysql_host=users-database:3306
+      - mysql_schema=nistagramusersschema
+    networks:
+      - backend
+
+  nistagram-media:
+    container_name: nistagram-media
+    build:
+      context: https://github.com/Nistagram-Organization/nistagram-media.git#development
+      dockerfile: Dockerfile
+    ports:
+      - 8089
+    depends_on:
+      media-database:
+        condition: service_healthy
+    restart: on-failure
+    environment:
+      - mysql_username=root
+      - mysql_password=root
+      - mysql_host=media-database:3306
+      - mysql_schema=nistagrammediaschema
+    networks:
+      - backend
+
+  nistagram-administration:
+    container_name: nistagram-administration
+    build:
+      context: https://github.com/Nistagram-Organization/nistagram-administration.git#development
+      dockerfile: Dockerfile
+    ports:
+      - 8088
+    restart: on-failure
+    networks:
+      - backend
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: on-failure
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus:/etc/prometheus
+    networks:
+      - backend
+
+  # grafana:
+  #   image: grafana/grafana:7.5.2
+  #   container_name: grafana
+  #   restart: on-failure
+  #   environment:
+  #     - GF_AUTH_DISABLE_LOGIN_FORM=true
+  #     - GF_AUTH_ANONYMOUS_ENABLED=true
+  #     - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+  #   ports:
+  #     - 4000:4000
+  #   volumes:
+  #     - ./grafana:/etc/grafana/provisioning
+  #     - grafana:/var/lib/grafana
+  #   depends_on:
+  #     - prometheus
+
+  node-exporter:
+    image: prom/node-exporter:v1.1.2
+    container_name: node-exporter
+    ports:
+      - 9100
+    networks:
+      - backend
+
+  cadvisor:
+    image: google/cadvisor
+    container_name: cadvisor
+    ports:
+      - 8080:8080
+    networks:
+      - backend
+
+volumes:
+  posts-db:
+  media-db:
+  users-db:
+  grafana:
+  prometheus:
+
+networks:
+  backend:
