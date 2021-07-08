@@ -80,7 +80,7 @@ services:
   nistagram-frontend:
     container_name: nistagram-frontend
     build:
-      context: https://github.com/Nistagram-Organization/nistagram-front.git##37
+      context: https://github.com/Nistagram-Organization/nistagram-front.git#development
       dockerfile: Dockerfile
     ports:
       - 3001:3001
@@ -111,7 +111,7 @@ services:
   nistagram-posts:
     container_name: nistagram-posts
     build:
-      context: https://github.com/Nistagram-Organization/nistagram-posts.git##45
+      context: https://github.com/Nistagram-Organization/nistagram-posts.git#development
       dockerfile: Dockerfile
     ports:
       - 8085
@@ -131,7 +131,7 @@ services:
   nistagram-users:
     container_name: nistagram-users
     build:
-      context: https://github.com/Nistagram-Organization/nistagram-users.git##50
+      context: https://github.com/Nistagram-Organization/nistagram-users.git#development
       dockerfile: Dockerfile
     ports:
       - 8084
@@ -169,7 +169,7 @@ services:
   nistagram-administration:
     container_name: nistagram-administration
     build:
-      context: https://github.com/Nistagram-Organization/nistagram-administration.git##16
+      context: https://github.com/Nistagram-Organization/nistagram-administration.git#development
       dockerfile: Dockerfile
     ports:
       - 8088
